@@ -100,10 +100,10 @@ app.get('/contact',(req,res)=>{
 
 
 app.post('/addresturant', (req, res) => {
-    const name = req.body.name
-    const location = req.body.location
-    const cuisine = req.body.cuisine
-    const maxcapacity = parseInt(req.body.maxcapacity, 10)
+    let name = req.body.name
+    let location = req.body.location
+    let cuisine = req.body.cuisine
+    let maxcapacity = parseInt(req.body.maxcapacity, 10)
 
     if (!name || !location || !cuisine || !maxcapacity) {
         return res.status(400).send('All fields are required');
@@ -148,10 +148,10 @@ app.get('/resturant/:location', (req, res) => {
 })
 
 app.post('/users/register', (req, res) => {
-    const username = req.body.username
-    const email = req.body.email
-    const password = req.body.password
-    const user_type = req.body.user_type
+    let username = req.body.username
+    let email = req.body.email
+    let password = req.body.password
+    let user_type = req.body.user_type
     db.run(`INSERT INTO USER(username,email,password,user_type)Values('${username}','${email}','${password}','${user_type}')`, (err) => {
         if (err) {
             console.log(err.message)
@@ -165,8 +165,8 @@ app.post('/users/register', (req, res) => {
 
 // for loggin in 
 app.post('/user/login', (req, res) => {
-    const email = req.body.email
-    const password = req.body.password
+    let email = req.body.email
+    let password = req.body.password
     db.get(`SELECT * FROM USER WHERE EMAIL = '${email}' AND PASSWORD= '${password}'`, (err, row) => {
         if (err || !row)
             return res.status(401).send("invalid credentials")
