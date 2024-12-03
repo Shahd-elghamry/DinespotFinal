@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS contact (
 
 
 
-app.post('/contact', (req,res)=> {
+app.post('/contact', (req, res) => {
     let question = req.body.question
     let userid = parseInt(req.body.userid, 10)
     let email = req.body.email
@@ -86,10 +86,10 @@ app.post('/contact', (req,res)=> {
         }
         else
             return res.send("Sent Successfully")
-})
+    })
 })
 
-app.get('/contact',(req,res)=>{
+app.get('/contact', (req, res) => {
     const query = 'SELECT * FROM contact'
     db.all(query, (err, rows) => {
         if (err) {
@@ -99,7 +99,7 @@ app.get('/contact',(req,res)=>{
         else {
             return res.json(rows)
         }
-})
+    })
 })
 
 
@@ -145,7 +145,7 @@ app.get('/resturant', (req, res) => {
 
 app.get('/resturant/search/:location?/:cuisine?/:dietary?/:halal?', (req, res) => {
     let { location, cuisine, dietary, halal } = req.params;
-    let query = `SELECT * FROM resturant WHERE 1=1`; 
+    let query = `SELECT * FROM resturant WHERE 1=1`;
     let params = []
 
     if (location) {
@@ -167,8 +167,8 @@ app.get('/resturant/search/:location?/:cuisine?/:dietary?/:halal?', (req, res) =
         halal = halal.trim();
         query += ` AND LOWER(halal) LIKE LOWER(?)`;
         params.push(`%${halal}%`);
-    }    
-  
+    }
+
     console.log(query, params);
 
     db.all(query, params, (err, rows) => {
@@ -189,9 +189,10 @@ app.post('/users/register', (req, res) => {
     let password = req.body.password
     let user_type = req.body.user_type
     let phonenum = req.body.phonenum
-    
+
     if (!username || !email || !password || !phonenum) {
-        return res.status(400).send('All fields are required'); }
+        return res.status(400).send('All fields are required');
+    }
 
     db.run(`INSERT INTO USER(username,email,password,phonenum,user_type)Values('${username}','${email}','${password}','${phonenum}','${user_type}')`, (err) => {
         if (err) {
@@ -230,10 +231,33 @@ app.get('/users', (req, res) => {
 })
 
 
-app.put('/resturant/edit/:id/:location', (req, res) => {
-    const query = `UPDATE resturant SET location = ? WHERE ID = ?`;
+app.put('/resturant/edit/:id', (req, res) => {
+    const resID = parseInt(req.params.id, 10);
 
-    db.run(query, [req.params.location, req.params.id], function (err) {
+    let name = req.body.name
+    let location = req.body.location
+    let cuisine = req.body.cuisine
+    let maxcapacity = parseInt(req.body.maxcapacity, 10)
+    let halal = req.body.halal
+    let min_of_health = req.body.min_of_health
+    let dietary = req.body.dietary
+
+    let updates = []
+    if (name) updates.push(`name = '${name}'`);
+    if (location) updates.push(`location = '${location}'`);
+    if (cuisine) updates.push(`cuisine = '${cuisine}'`);
+    if (maxcapacity) updates.push(`maxcapacity = ${maxcapacity}`);
+    if (halal) updates.push(`halal = '${halal}'`);
+    if (min_of_health) updates.push(`min_of_health = '${min_of_health}'`);
+    if (dietary) updates.push(`dietary = '${dietary}'`);
+
+    if (updates.length === 0) {
+        return res.status(400).send('No fields to update. Provide at least one field.');
+    }
+
+    const query = `UPDATE resturant SET ${updates.join(', ')} WHERE ID = ${resID}`;
+
+    db.run(query, function (err) {
         if (err) {
             console.log(err);
             return res.status(500).send('An error occurred while updating the restaurant.');
@@ -252,10 +276,13 @@ app.put('/user/edit/:id', (req, res) => {
     let username = req.body.username;
     let email = req.body.email;
     let password = req.body.password;
+    let phonenum = parseInt(req.body.phonenum, 10)
+    let updates = []
 
     if (username) updates.push(`username = '${username}'`);
     if (email) updates.push(`email = '${email}'`);
     if (password) updates.push(`password = '${password}'`);
+    if (phonenum) updates.push(`phonenum = '${phonenum}'`);
 
     if (updates.length === 0) {
         return res.status(400).send('No fields to update. Provide at least one field.');
@@ -398,23 +425,23 @@ app.listen(port, () => {       // listening on port 5005
         });
         db.exec(createBookingTable, (err) => {
             if (err) {
-                console.error("Error creating Resturant table:", err);
+                console.error("Error creating Booking table:", err);
             } else {
-                console.log("Resturant table created successfully!");
+                console.log("Booking table created successfully!");
             }
         });
         db.exec(createReviewTable, (err) => {
             if (err) {
-                console.error("Error creating Resturant table:", err);
+                console.error("Error creating Review table:", err);
             } else {
-                console.log("Resturant table created successfully!");
+                console.log("Review table created successfully!");
             }
         });
         db.exec(createContactTable, (err) => {
             if (err) {
-                console.error("Error creating Resturant table:", err);
+                console.error("Error creating Contact table:", err);
             } else {
-                console.log("Resturant table created successfully!");
+                console.log("Contact table created successfully!");
             }
         });
     });
