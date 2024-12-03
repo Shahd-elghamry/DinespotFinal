@@ -425,6 +425,66 @@ app.get('/bookings', (req, res) => {
     });
 });
 
+app.get('/booking/:userId', (req, res) => {
+    const userID = req.params.userId;
+
+    const query = `SELECT * FROM booking WHERE id = ${userID}`;
+
+    db.get(query, (err, row) => {
+        if (err) {
+            console.log(err);
+            return res.status(500).send("Error fetching booking");
+        }
+
+        if (!row) {
+            return res.status(404).send(`No booking found with ID ${userID}`);
+        }
+
+        return res.json(row);  // Return the booking data if found
+    });
+});
+
+app.put('/booking/:bookingId', (req, res) => {
+    const bookingId = req.params.bookingId;
+    const { user_id, restaurant_id, booking_date, booking_time, quantity } = req.body;
+
+    const updates = [];
+
+    if (user_id) updates.push(`user_id = ${user_id}`);
+    if (restaurant_id) updates.push(`restaurant_id = ${restaurant_id}`);
+    if (booking_date) updates.push(`booking_date = '${booking_date}'`);
+    if (booking_time) updates.push(`booking_time = '${booking_time}'`);
+    if (quantity) updates.push(`quantity = ${quantity}`);
+
+    if (updates.length === 0) {
+        return res.status(400).send('No fields to update. Please provide at least one field.');
+    }
+
+    const checkQuery = `SELECT * FROM booking WHERE id = ${bookingId}`;
+
+    db.get(checkQuery, (err, row) => {
+        if (err) {
+            console.log(err);
+            return res.status(500).send('Error checking booking existence');
+        }
+
+        if (!row) {
+            return res.status(404).send(`No booking found with id ${bookingId}`);
+        }
+
+        const updateQuery = `UPDATE booking SET ${updates.join(', ')} WHERE id = ${bookingId}`;
+
+        db.run(updateQuery, (err) => {
+            if (err) {
+                console.log(err);
+                return res.status(500).send('Error updating booking');
+            }
+            return res.status(200).send(`Booking with id ${bookingId} updated successfully`);
+        });
+    });
+});
+
+
 app.listen(port, () => {       // listening on port 5005
     console.log(`Server started on port ${port}`)
     db.serialize(() => { // Executes in a synchronously order 
