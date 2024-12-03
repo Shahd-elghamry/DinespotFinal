@@ -33,7 +33,7 @@ const createResturantTable = `
         min_of_health TEXT,
         maxcapacity INT NOT NULL,
         dietary TEXT ,
-        availabecapacity INT NOT NULL 
+        availablecapacity INT NOT NULL 
     )`;
 // created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
@@ -121,7 +121,7 @@ app.post('/addresturant', (req, res) => {
         return res.status(400).send(`Missing required fields: ${missingFields.join(', ')}`);
     }
 
-    db.run(`INSERT INTO RESTURANT (name, location, cuisine, maxcapacity, availabecapacity, halal, min_of_health, dietary) Values ('${name}', '${location}','${cuisine}',${maxcapacity},${maxcapacity},'${halal}','${min_of_health}','${dietary}')`, (err) => {
+    db.run(`INSERT INTO RESTURANT (name, location, cuisine, maxcapacity, availablecapacity, halal, min_of_health, dietary) Values ('${name}', '${location}','${cuisine}',${maxcapacity},${maxcapacity},'${halal}','${min_of_health}','${dietary}')`, (err) => {
         if (err)
             return res.status(401).send(err)
         else
@@ -306,50 +306,58 @@ app.put('/user/edit/:id', (req, res) => {
 
 
 //WHERE QUANTITY>0 // momken yeb2a added after from resturant 
-app.get('/resturant/search', (req, res) => {
-    let location = req.query.location
-    let cuisine = req.query.cuisine
-    let query = `SELECT * FROM RESTURANT `
-    if (location) {
-        query += ` WHERE LOCATION='${location}'`;
-    }
-    if (cuisine) {
-        if (location) {
-            query += ` AND CUISINE='${cuisine}'`;
-        } else {
-            query += ` WHERE CUISINE='${cuisine}'`;
-        }
-    }
+// app.get('/resturant/search', (req, res) => {
+//     let location = req.query.location
+//     let cuisine = req.query.cuisine
+//     let query = `SELECT * FROM RESTURANT `
+//     if (location) {
+//         query += ` WHERE LOCATION='${location}'`;
+//     }
+//     if (cuisine) {
+//         if (location) {
+//             query += ` AND CUISINE='${cuisine}'`;
+//         } else {
+//             query += ` WHERE CUISINE='${cuisine}'`;
+//         }
+//     }
 
-    db.all(query, (err, rows) => {
-        if (err) {
-            console.log(err)
-            return res.send(err)
-        }
-        else {
-            return res.json(rows)
-        }
-    })
-})
+//     db.all(query, (err, rows) => {
+//         if (err) {
+//             console.log(err)
+//             return res.send(err)
+//         }
+//         else {
+//             return res.json(rows)
+//         }
+//     })
+// })
 
 app.put('/resturant/book', (req, res) => {
-    let name = req.query.name
-    let date = req.query.date
-    let time = req.query.time
-    let quantity = parseInt(req.query.quantity, 10)
-    let query = `SELECT availabecapacity,id FROM resturant WHERE name = '${name}'`;
-    db.get(query, (err, row) => {
+    const userId = parseInt(req.body.userid, 10);
+    let name = req.body.name
+    let date = req.body.date
+    let time = req.body.time
+    let quantity = parseInt(req.body.quantity, 10)
+
+    if (!name || !date || !time || isNaN(quantity) || isNaN(userId)) {
+        return res.status(400).send('Invalid input. Please provide all required fields.');
+    }
+
+    let query = `SELECT availablecapacity, id FROM resturant WHERE LOWER(name) = LOWER(?)`;
+    db.get(query,[name],(err, row) => {
         if (err) {
             console.log(err)
             return res.json(err)
+        } else if (!row){
+            return res.status(404).send('Restaurant not found.');
         }
         else {
-            let current = parseInt(row.availabecapacity, 10)
-            if (quanity > current)
+            let current = parseInt(row.availablecapacity, 10)
+            if (quantity > current)
                 return res.send("No available seats")
             else {
                 let resID = parseInt(row.id, 10)
-                let available = current - quantitiy
+                let available = current - quantity
                 query = `UPDATE resturant SET availablecapacity = ${available} WHERE id = ${resID}`
                 db.run(query, (err) => {
                     if (err) {
@@ -363,7 +371,7 @@ app.put('/resturant/book', (req, res) => {
                             restaurant_id,
                             booking_date,
                             booking_time,
-                            quantity) VALUES (${userid}, ${resID}, '${date}', '${time}')`
+                            quantity) VALUES (${userid}, ${resID}, '${date}', '${time}',${quantity})`
                         db.run(query, (err) => {
                             if (err) {
                                 console.log(err)
@@ -405,6 +413,17 @@ app.delete('/user/:id', (req, res) => {
     });
 });
 
+app.get('/bookings', (req, res) => {
+    const query = 'SELECT * FROM booking';
+
+    db.all(query, (err, rows) => {
+        if (err) {
+            console.log(err);
+            return res.status(500).send("Error fetching bookings");
+        }
+        return res.json(rows); 
+    });
+});
 
 app.listen(port, () => {       // listening on port 5005
     console.log(`Server started on port ${port}`)
