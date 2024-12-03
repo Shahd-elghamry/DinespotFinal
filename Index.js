@@ -73,6 +73,31 @@ CREATE TABLE IF NOT EXISTS contact (
     )`;
 
 
+    app.post('/review', (req, res) => {
+        const { user_id, restaurant_id, rating, review } = req.body;
+    
+        if (!user_id || !restaurant_id || !rating) {
+            return res.status(400).send('Missing required fields: user_id, restaurant_id, and rating are required.');
+        }
+    
+        if (rating < 1 || rating > 5) {
+            return res.status(400).send('Rating must be a number between 1 and 5.');
+        }
+    
+        const query = `INSERT INTO review (user_id, restaurant_id, rating, review) 
+                       VALUES ('${user_id}', '${restaurant_id}', ${rating}, '${review}')`;
+    
+        db.run(query, function(err) {
+            if (err) {
+                console.log(err);
+                return res.status(500).send('Error adding the review');
+            }
+    
+            return res.status(201).send(`Review added successfully with ID ${this.lastID}`);
+        });
+    });    
+
+
 
 app.post('/contact', (req, res) => {
     let question = req.body.question
@@ -481,6 +506,33 @@ app.put('/booking/:bookingId', (req, res) => {
             }
             return res.status(200).send(`Booking with id ${bookingId} updated successfully`);
         });
+    });
+});
+
+
+app.delete('/contact/:id', (req, res) => {
+    const query = `DELETE FROM contact WHERE id=${req.params.id}`;
+
+    db.run(query, (err) => {
+        if (err) {
+            console.log(err);
+            return res.status(500).send("Error deleting Contact");
+        }
+        else
+            return res.status(200).send(`contact with id ${req.params.id} deleted successfully`);
+    });
+});
+
+app.delete('/booking/:id', (req, res) => {
+    const query = `DELETE FROM booking WHERE id=${req.params.id}`;
+
+    db.run(query, (err) => {
+        if (err) {
+            console.log(err);
+            return res.status(500).send("Error deleting booking");
+        }
+        else
+            return res.status(200).send(`booking with id ${req.params.id} deleted successfully`);
     });
 });
 
