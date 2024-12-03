@@ -155,6 +155,19 @@ app.post('/addresturant', (req, res) => {
 })
 
 
+app.get('/review', (req, res) => {
+    const query = 'SELECT * FROM review'
+    db.all(query, (err, rows) => {
+        if (err) {
+            console.log(err)
+            return res.status(500).send(err)
+        }
+        else {
+            return res.json(rows)
+        }
+    })
+})
+
 app.get('/resturant', (req, res) => {
     const query = 'SELECT * FROM RESTURANT'
     db.all(query, (err, rows) => {
@@ -219,6 +232,11 @@ app.post('/users/register', (req, res) => {
         return res.status(400).send('All fields are required');
     }
 
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[com]{3}$/;
+
+    if (!emailRegex.test(email)) {
+        return res.status(400).send('Invalid email format. The email should contain "@*.com".');
+    }
     db.run(`INSERT INTO USER(username,email,password,phonenum,user_type)Values('${username}','${email}','${password}','${phonenum}','${user_type}')`, (err) => {
         if (err) {
             console.log(err.message)
@@ -510,16 +528,16 @@ app.put('/booking/:bookingId', (req, res) => {
 });
 
 
-app.delete('/contact/:id', (req, res) => {
-    const query = `DELETE FROM contact WHERE id=${req.params.id}`;
+app.delete('/review/:id', (req, res) => {
+    const query = `DELETE FROM review WHERE id=${req.params.id}`;
 
     db.run(query, (err) => {
         if (err) {
             console.log(err);
-            return res.status(500).send("Error deleting Contact");
+            return res.status(500).send("Error deleting review");
         }
         else
-            return res.status(200).send(`contact with id ${req.params.id} deleted successfully`);
+            return res.status(200).send(`review with id ${req.params.id} deleted successfully`);
     });
 });
 
