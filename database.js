@@ -95,4 +95,5 @@ CREATE TABLE IF NOT EXISTS contact (
             }
         });
     });
+    
 module.exports = {db, createResturantTable, createUserTable, createBookingTable, createReviewTable, createContactTable}
