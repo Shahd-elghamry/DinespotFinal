@@ -81,6 +81,18 @@ var UserR = function(app, db){
         });
     });
     
+    app.delete('/user/:id', (req, res) => {
+        const query = `DELETE FROM USER WHERE id=${req.params.id}`;
+    
+        db.run(query, (err) => {
+            if (err) {
+                console.log(err);
+                return res.status(500).send("Error deleting user");
+            }
+            return res.status(200).send(`User with id ${req.params.id} deleted successfully`);
+        });
+    });
+    
     return app;
 }
 
