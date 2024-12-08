@@ -1,5 +1,5 @@
 var BookingRoutes = function (app, db) {
-    
+
 app.put('/resturant/book', (req, res) => {
     const userId = parseInt(req.body.userid, 10);
     let name = req.body.name
