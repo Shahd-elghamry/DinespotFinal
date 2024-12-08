@@ -5,6 +5,7 @@ app.use(express.json());
 const db_access = require('./database');
 const user_Routes = require('./userRoutes');
 const resturant_routes = require('./ResturantRoutes');
+const review_routes = require('./ReviewRoutes')
 const db = db_access.db;
 
 //Just to verify the website works
@@ -14,31 +15,7 @@ app.get('/', (req, res) => { // Beysha8al el website
 })
 app = user_Routes.UserRoutes(app, db);
 app = resturant_routes.RestaurantRoutes(app,db);
-
-    app.post('/review', (req, res) => {
-        const { user_id, restaurant_id, rating, review } = req.body;
-    
-        if (!user_id || !restaurant_id || !rating) {
-            return res.status(400).send('Missing required fields: user_id, restaurant_id, and rating are required.');
-        }
-    
-        if (rating < 1 || rating > 5) {
-            return res.status(400).send('Rating must be a number between 1 and 5.');
-        }
-    
-        const query = `INSERT INTO review (user_id, restaurant_id, rating, review) 
-                       VALUES ('${user_id}', '${restaurant_id}', ${rating}, '${review}')`;
-    
-        db.run(query, function(err) {
-            if (err) {
-                console.log(err);
-                return res.status(500).send('Error adding the review');
-            }
-    
-            return res.status(201).send(`Review added successfully with ID ${this.lastID}`);
-        });
-    });    
-
+app = review_routes.ReviewRoutes(app,db);
 
 
 app.post('/contact', (req, res) => {
@@ -71,19 +48,6 @@ app.get('/contact', (req, res) => {
 
 
 
-
-app.get('/review', (req, res) => {
-    const query = 'SELECT * FROM review'
-    db.all(query, (err, rows) => {
-        if (err) {
-            console.log(err)
-            return res.status(500).send(err)
-        }
-        else {
-            return res.json(rows)
-        }
-    })
-})
 
 
 //WHERE QUANTITY>0 // momken yeb2a added after from resturant 
@@ -244,18 +208,6 @@ app.put('/booking/:bookingId', (req, res) => {
 });
 
 
-app.delete('/review/:id', (req, res) => {
-    const query = `DELETE FROM review WHERE id=${req.params.id}`;
-
-    db.run(query, (err) => {
-        if (err) {
-            console.log(err);
-            return res.status(500).send("Error deleting review");
-        }
-        else
-            return res.status(200).send(`review with id ${req.params.id} deleted successfully`);
-    });
-});
 
 app.delete('/booking/:id', (req, res) => {
     const query = `DELETE FROM booking WHERE id=${req.params.id}`;
