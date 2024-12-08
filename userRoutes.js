@@ -1,4 +1,5 @@
-var UserR = function(app, db){
+
+var UserRoutes = function(app, db){
     app.post('/users/register', (req, res) => {
         let username = req.body.username
         let email = req.body.email
@@ -96,4 +97,4 @@ var UserR = function(app, db){
     return app;
 }
 
-module.exports = {UserR}
+module.exports = {UserRoutes}
