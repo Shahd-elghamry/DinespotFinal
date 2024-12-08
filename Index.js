@@ -6,6 +6,7 @@ const db_access = require('./database');
 const user_Routes = require('./userRoutes');
 const resturant_routes = require('./ResturantRoutes');
 const review_routes = require('./ReviewRoutes')
+const contact_routes = require('./ContactRoutes')
 const db = db_access.db;
 
 //Just to verify the website works
@@ -16,38 +17,7 @@ app.get('/', (req, res) => { // Beysha8al el website
 app = user_Routes.UserRoutes(app, db);
 app = resturant_routes.RestaurantRoutes(app,db);
 app = review_routes.ReviewRoutes(app,db);
-
-
-app.post('/contact', (req, res) => {
-    let question = req.body.question
-    let userid = parseInt(req.body.userid, 10)
-    let email = req.body.email
-    query = `INSERT INTO contact (user_id, email, question) VALUES (${userid}, '${email}', '${question}')`
-    db.run(query, (err) => {
-        if (err) {
-            console.log(err)
-            return res.json(err)
-        }
-        else
-            return res.send("Sent Successfully")
-    })
-})
-
-app.get('/contact', (req, res) => {
-    const query = 'SELECT * FROM contact'
-    db.all(query, (err, rows) => {
-        if (err) {
-            console.log(err)
-            return res.status(500).send(err)
-        }
-        else {
-            return res.json(rows)
-        }
-    })
-})
-
-
-
+app = contact_routes.ContactRoutes(app,db); 
 
 
 //WHERE QUANTITY>0 // momken yeb2a added after from resturant 
