@@ -2,75 +2,14 @@ const express = require('express');
 const app = express();
 const port = 5005;
 app.use(express.json());
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('dinespot.db');
-
+const db_access = require('./database');
+const db = db_access.db;
 
 //Just to verify the website works
 
 app.get('/', (req, res) => { // Beysha8al el website 
     res.send("Hello World!"); // awel ma afta7 byeegy hello world == http://127.0.0.1:5005
 })
-
-const createUserTable = `
-    CREATE TABLE IF NOT EXISTS user (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL,
-        phonenum TEXT NOT NULL,
-        user_type TEXT NOT NULL
-    )`;
-// created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-
-const createResturantTable = `
-    CREATE TABLE IF NOT EXISTS resturant (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        location TEXT NOT NULL ,
-        cuisine TEXT NOT NULL,
-        halal TEXT,
-        min_of_health TEXT,
-        maxcapacity INT NOT NULL,
-        dietary TEXT ,
-        availablecapacity INT NOT NULL 
-    )`;
-// created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-
-const createBookingTable = `
-    CREATE TABLE IF NOT EXISTS booking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        restaurant_id INTEGER NOT NULL,
-        booking_date TEXT NOT NULL,
-        booking_time TEXT NOT NULL,
-        quantity INTEGER NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES user(id),
-        FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
-    )`;
-//        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-const createReviewTable = `
-CREATE TABLE IF NOT EXISTS review (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,            
-    restaurant_id INTEGER NOT NULL,      
-    rating INTEGER NOT NULL,     
-    review TEXT,                          
-    FOREIGN KEY (user_id) REFERENCES user(id),
-    FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
-    )`;
-// created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-const createContactTable = `
-CREATE TABLE IF NOT EXISTS contact (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,            
-    email TEXT NOT NULL,
-    question TEXT NOT NULL,                          
-    FOREIGN KEY (user_id) REFERENCES user(id),
-    FOREIGN KEY (email) REFERENCES user(email)
-    )`;
 
 
     app.post('/review', (req, res) => {
@@ -557,46 +496,8 @@ app.delete('/booking/:id', (req, res) => {
 
 app.listen(port, () => {       // listening on port 5005
     console.log(`Server started on port ${port}`)
-    db.serialize(() => { // Executes in a synchronously order 
-        db.exec(createUserTable, (err) => {
-            if (err) {
-                console.error("Error creating user table:", err);
-            } else {
-                console.log("User table created successfully!");
-            }
-        });
-        db.exec(createResturantTable, (err) => {
-            if (err) {
-                console.error("Error creating Resturant table:", err);
-            } else {
-                console.log("Resturant table created successfully!");
-            }
-        });
-        db.exec(createBookingTable, (err) => {
-            if (err) {
-                console.error("Error creating Booking table:", err);
-            } else {
-                console.log("Booking table created successfully!");
-            }
-        });
-        db.exec(createReviewTable, (err) => {
-            if (err) {
-                console.error("Error creating Review table:", err);
-            } else {
-                console.log("Review table created successfully!");
-            }
-        });
-        db.exec(createContactTable, (err) => {
-            if (err) {
-                console.error("Error creating Contact table:", err);
-            } else {
-                console.log("Contact table created successfully!");
-            }
-        });
-    });
     setInterval(() => {
         console.log(`Server is running on port: ${port}`);
     }, 7000)
 });
-
 
