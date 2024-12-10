@@ -1,6 +1,8 @@
+const { verifyToken } = require("./userRoutes")
+
 var RestaurantRoutes = function (app, db) {
 
-    app.post('/addresturant', (req, res) => {
+    app.post('/addresturant',verifyToken, (req, res) => {
         let name = req.body.name
         let location = req.body.location
         let cuisine = req.body.cuisine
@@ -8,6 +10,10 @@ var RestaurantRoutes = function (app, db) {
         let halal = req.body.halal
         let min_of_health = req.body.min_of_health
         let dietary = req.body.dietary
+
+        if (req.user.user_type !== 'admin' && req.user.user_type !== 'restaurant_owner') {
+            return res.status(403).send('Access denied: You are not authorized to add a restaurant');
+        }
 
         const missingFields = [];
         if (!name) missingFields.push('name');
@@ -18,7 +24,16 @@ var RestaurantRoutes = function (app, db) {
             return res.status(400).send(`Missing required fields: ${missingFields.join(', ')}`);
         }
 
-        db.run(`INSERT INTO RESTURANT (name, location, cuisine, maxcapacity, availablecapacity, halal, min_of_health, dietary) Values ('${name}', '${location}','${cuisine}',${maxcapacity},${maxcapacity},'${halal}','${min_of_health}','${dietary}')`, (err) => {
+        const query = `
+        INSERT INTO RESTAURANT 
+        (name, location, cuisine, maxcapacity, availablecapacity, halal, min_of_health, dietary)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    db.run(
+        query,
+        [name, location, cuisine, maxcapacity, maxcapacity, halal, min_of_health, dietary],
+        (err) => {
             if (err)
                 return res.status(401).send(err)
             else
