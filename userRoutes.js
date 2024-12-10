@@ -1,3 +1,12 @@
+const token = require('jsonwebtoken')
+const cookie = require('cookie-parser')
+const secret_key = 'asdfghjklertyuiodfghjdbh8u'
+
+const generatetoken =(id, user_type, email) =>{
+    return token.sign({id, user_type, email},secret_key,{expiresIn:'5h'})
+}
+
+app.use(cookie())
 
 var UserRoutes = function(app, db){
     app.post('/users/register', (req, res) => {
@@ -32,12 +41,23 @@ var UserRoutes = function(app, db){
         db.get(`SELECT * FROM USER WHERE EMAIL = '${email}' AND PASSWORD= '${password}'`, (err, row) => {
             if (err || !row)
                 return res.status(401).send("invalid credentials")
-            else
-                return res.status(200).send('login successfull')
+            else { 
+                let userType = row.user_type
+                let userID = row.id
+                const generatedtoken = generatetoken(userID, userType, email)
+                res.cookie('auth',generatedtoken,{
+                    httpOnly:true,
+                    sameSite:'strict',
+                    expiresIn:'5h'
+                })
+                return res.status(200).send('login successfull')}
         })
 
     });
-    app.get('/users', (req, res) => {
+    app.get('/users',verifyToken, (req, res) => {
+        if (req.info.user_type !=='admin'){
+            return res.status(403).send("You are not an admin")
+        }
         const query = 'SELECT * FROM USER'
         db.all(query, (err, rows) => {
             if (err) {
@@ -50,7 +70,7 @@ var UserRoutes = function(app, db){
         })
     }); 
 
-    app.put('/user/edit/:id', (req, res) => {
+    app.put('/user/edit/:id', verifyToken, (req, res) => {
         let username = req.body.username;
         let email = req.body.email;
         let password = req.body.password;
@@ -82,7 +102,7 @@ var UserRoutes = function(app, db){
         });
     });
     
-    app.delete('/user/:id', (req, res) => {
+    app.delete('/user/:id', verifyToken, (req, res) => {
         const query = `DELETE FROM USER WHERE id=${req.params.id}`;
     
         db.run(query, (err) => {
@@ -97,4 +117,22 @@ var UserRoutes = function(app, db){
     return app;
 }
 
-module.exports = {UserRoutes}
+const verifyToken = (req,res,next)=>{
+let verified = req.cookies('auth') 
+if (!verified) { 
+    return res.status(401).send("Login First")
+}
+else{
+token.verify(verified,secret_key,(err,info)=>{
+    if (err) {
+        return res.status(403).send("Invaild Token")
+    }
+    else{
+        req.info = info 
+        next()
+    }
+})
+}
+}
+
+module.exports = {UserRoutes,verifyToken}

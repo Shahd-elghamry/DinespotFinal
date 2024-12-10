@@ -13,7 +13,6 @@ const cors = require('cors')
 app.use(cors())
 
 //Just to verify the website works
-
 app.get('/', (req, res) => { 
     res.send("Hello World!");
 })
@@ -22,6 +21,11 @@ app = resturant_routes.RestaurantRoutes(app,db);
 app = review_routes.ReviewRoutes(app,db);
 app = contact_routes.ContactRoutes(app,db); 
 app = booking_routes.BookingRoutes(app,db);
+
+
+
+
+
 
 
 //WHERE QUANTITY>0 // momken yeb2a added after from resturant 
