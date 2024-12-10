@@ -2,8 +2,8 @@ const token = require('jsonwebtoken')
 const cookie = require('cookie-parser')
 const secret_key = 'asdfghjklertyuiodfghjdbh8u'
 
-const generatetoken =(id, user_type, email) =>{
-    return token.sign({id, user_type, email},secret_key,{expiresIn:'5h'})
+const generatetoken =(id, user_type, email,username) =>{
+    return token.sign({id, user_type, email,username},secret_key,{expiresIn:'5h'})
 }
 
 app.use(cookie())
@@ -44,7 +44,8 @@ var UserRoutes = function(app, db){
             else { 
                 let userType = row.user_type
                 let userID = row.id
-                const generatedtoken = generatetoken(userID, userType, email)
+                let username = row.username
+                const generatedtoken = generatetoken(userID, userType, email, username)
                 res.cookie('auth',generatedtoken,{
                     httpOnly:true,
                     sameSite:'strict',
