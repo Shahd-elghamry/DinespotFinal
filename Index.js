@@ -10,7 +10,9 @@ const contact_routes = require('./ContactRoutes')
 const booking_routes = require('./BookingRoutes')
 const db = db_access.db;
 const cors = require('cors')
+const cookie = require('cookie-parser')
 app.use(cors())
+app.use(cookie())
 
 //Just to verify the website works
 app.get('/', (req, res) => { 

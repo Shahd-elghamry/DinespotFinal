@@ -1,12 +1,11 @@
 const token = require('jsonwebtoken')
-const cookie = require('cookie-parser')
 const secret_key = 'asdfghjklertyuiodfghjdbh8u'
 
 const generatetoken =(id, user_type, email,username) =>{
     return token.sign({id, user_type, email,username},secret_key,{expiresIn:'5h'})
 }
 
-app.use(cookie())
+
 
 var UserRoutes = function(app, db){
     app.post('/users/register', (req, res) => {
