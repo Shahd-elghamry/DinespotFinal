@@ -41,8 +41,8 @@ var RestaurantRoutes = function (app, db) {
     })
 
 
-    app.get('/resturant/search/:location?/:cuisine?/:dietary?/:halal?', (req, res) => {
-        let { location, cuisine, dietary, halal } = req.params;
+    app.get('/resturant/search', (req, res) => {
+        let { location, cuisine, dietary, halal } = req.query;
         let query = `SELECT * FROM resturant WHERE 1=1`;
         let params = []
 
