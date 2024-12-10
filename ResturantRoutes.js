@@ -11,6 +11,8 @@ var RestaurantRoutes = function (app, db) {
         let min_of_health = req.body.min_of_health
         let dietary = req.body.dietary
 
+        const owner_id = req.user.id; 
+
         if (req.user.user_type !== 'admin' && req.user.user_type !== 'restaurant_owner') {
             return res.status(403).send('Access denied: You are not authorized to add a restaurant');
         }
@@ -81,8 +83,6 @@ var RestaurantRoutes = function (app, db) {
             params.push(`%${halal}%`);
         }
 
-        console.log(query, params);
-
         db.all(query, params, (err, rows) => {
             if (err) {
                 console.log(err);
@@ -96,9 +96,24 @@ var RestaurantRoutes = function (app, db) {
     });
 
 
-    app.put('/resturant/edit/:id', (req, res) => {
+    app.put('/resturant/edit/:id',verifyToken, (req, res) => {
         const resID = parseInt(req.params.id, 10);
+        const userID = req.user.id;  //Only admins or restaurant owners can access
+
+        db.get('SELECT * FROM restaurant WHERE id = ?', [resID], (err, row) => {
+            if (err) {
+                console.log(err);
+                return res.status(500).send('Error checking restaurant ownership.');
+            }
     
+            if (!row) {
+                return res.status(404).send('Restaurant not found.');
+            }
+
+            if (req.user.user_type !== 'admin' && row.owner_id !== userID) {
+                return res.status(403).send('You do not have permission to edit this restaurant.');
+            }
+
         let name = req.body.name
         let location = req.body.location
         let cuisine = req.body.cuisine
@@ -108,21 +123,45 @@ var RestaurantRoutes = function (app, db) {
         let dietary = req.body.dietary
     
         let updates = []
-        if (name) updates.push(`name = '${name}'`);
-        if (location) updates.push(`location = '${location}'`);
-        if (cuisine) updates.push(`cuisine = '${cuisine}'`);
-        if (maxcapacity) updates.push(`maxcapacity = ${maxcapacity}`);
-        if (halal) updates.push(`halal = '${halal}'`);
-        if (min_of_health) updates.push(`min_of_health = '${min_of_health}'`);
-        if (dietary) updates.push(`dietary = '${dietary}'`);
+        let params = []
+
+        if (name) {
+            updates.push('name = ?');
+            params.push(name);
+        }
+        if (location) {
+            updates.push('location = ?');
+            params.push(location);
+        }
+        if (cuisine) {
+            updates.push('cuisine = ?');
+            params.push(cuisine);
+        }
+        if (maxcapacity) {
+            updates.push('maxcapacity = ?');
+            params.push(maxcapacity);
+        }
+        if (halal) {
+            updates.push('halal = ?');
+            params.push(halal);
+        }
+        if (min_of_health) {
+            updates.push('min_of_health = ?');
+            params.push(min_of_health);
+        }
+        if (dietary) {
+            updates.push('dietary = ?');
+            params.push(dietary);
+        }
     
         if (updates.length === 0) {
             return res.status(400).send('No fields to update. Provide at least one field.');
         }
     
-        const query = `UPDATE resturant SET ${updates.join(', ')} WHERE ID = ${resID}`;
+        params.push(resID);
+        const query = `UPDATE restaurant SET ${updates.join(', ')} WHERE ID = ?`;
     
-        db.run(query, function (err) {
+        db.run(query, params, function (err) {
             if (err) {
                 console.log(err);
                 return res.status(500).send('An error occurred while updating the restaurant.');
@@ -135,12 +174,29 @@ var RestaurantRoutes = function (app, db) {
             return res.send('Restaurant edited successfully.');
         });
     });
+})
     
 
-    app.delete('/resturant/:id', (req, res) => {
-        const query = `DELETE FROM RESTURANT WHERE id=${req.params.id}`;
+    app.delete('/resturant/:id',verifyToken, (req, res) => {
+        const resID = parseInt(req.params.id, 10);
+        const userID = req.user.id; 
+        db.get('SELECT * FROM resturant WHERE id = ?', [resID], (err, row) => {
+            if (err) {
+                console.log(err);
+                return res.status(500).send('Error fetching restaurant');
+            }
     
-        db.run(query, (err) => {
+            if (!row) {
+                return res.status(404).send('Restaurant not found');
+            }
+
+            if (req.user.user_type !== 'admin' && row.owner_id !== userID) {
+                return res.status(403).send('You are not authorized to delete this restaurant');
+            }
+     
+            const query = 'DELETE FROM resturant WHERE id = ?';
+
+        db.run(query, [resID], (err) => {
             if (err) {
                 console.log(err);
                 return res.status(500).send("Error deleting restaurant");
@@ -149,6 +205,7 @@ var RestaurantRoutes = function (app, db) {
                 return res.status(200).send(`Restaurant with id ${req.params.id} deleted successfully`);
         });
     });
+})
 
     return app;
 }
