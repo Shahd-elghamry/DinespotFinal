@@ -9,6 +9,8 @@ const review_routes = require('./ReviewRoutes')
 const contact_routes = require('./ContactRoutes')
 const booking_routes = require('./BookingRoutes')
 const db = db_access.db;
+const cors = require('cors')
+app.use(cors())
 
 //Just to verify the website works
 
