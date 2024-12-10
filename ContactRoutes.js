@@ -1,11 +1,18 @@
+const { verifyToken } = require("./userRoutes");
+
 var ContactRoutes = function (app, db) {
 
-    app.post('/contact', (req, res) => {
+    app.post('/contact',verifyToken, (req, res) => {
         let question = req.body.question
-        let userid = parseInt(req.body.userid, 10)
-        let email = req.body.email
-        query = `INSERT INTO contact (user_id, email, question) VALUES (${userid}, '${email}', '${question}')`
-        db.run(query, (err) => {
+        let userid = req.user.id
+        let email = req.user.email
+
+        if (!question || !email) {
+            return res.status(400).send('Missing required fields: question or email');
+        }
+        
+        const query = `INSERT INTO contact (user_id, email, question) VALUES (?, ?, ?)`;
+        db.run(query, [userid, email, question], function (err) {
             if (err) {
                 console.log(err)
                 return res.json(err)
@@ -17,9 +24,14 @@ var ContactRoutes = function (app, db) {
     
     
 
-app.get('/contact', (req, res) => {
+app.get('/contact',verifyToken, (req, res) => {
+
+    if (req.user.user_type !== 'admin') {
+        return res.status(403).send('Access denied: You are not authorized to view contacts');
+    }
+
     const query = 'SELECT * FROM contact'
-    db.all(query, (err, rows) => {
+    db.all(query, [], (err, rows) => {
         if (err) {
             console.log(err)
             return res.status(500).send(err)
