@@ -11,8 +11,12 @@ const booking_routes = require('./BookingRoutes')
 const db = db_access.db;
 const cors = require('cors')
 const cookie = require('cookie-parser')
-app.use(cors())
+// app.use(cors())
 app.use(cookie())
+app.use(cors({ 
+    origin: 'http://localhost:3000', // Replace with your frontend's origin
+    credentials: true // Allow credentials (e.g., cookies)
+}));
 
 //Just to verify the website works
 app.get('/', (req, res) => { 
@@ -32,8 +36,7 @@ app = booking_routes.BookingRoutes(app,db);
 
 //WHERE QUANTITY>0 // momken yeb2a added after from resturant 
 // app.get('/resturant/search', (req, res) => {
-//     let location = req.query.location
-//     let cuisine = req.query.cuisine
+//     let location = req.query.location//     let cuisine = req.query.cuisine
 //     let query = `SELECT * FROM RESTURANT `
 //     if (location) {
 //         query += ` WHERE LOCATION='${location}'`;
