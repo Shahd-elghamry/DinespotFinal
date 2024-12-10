@@ -41,19 +41,18 @@ var RestaurantRoutes = function (app, db) {
         })
     })
 
-
     app.get('/resturant', (req, res) => {
-        const query = 'SELECT * FROM RESTURANT'
-        db.all(query, (err, rows) => {
+        const query = 'SELECT * FROM RESTURANT'; 
+        db.all(query, [], (err, rows) => { 
             if (err) {
-                console.log(err)
-                return res.status(500).send(err)
-            }
+                console.log(err);
+                return res.status(500).send(err);
+            } 
             else {
-                return res.json(rows)
+                return res.json(rows);
             }
-        })
-    })
+        });
+    });
 
 
     app.get('/resturant/search', (req, res) => {
