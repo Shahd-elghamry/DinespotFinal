@@ -131,7 +131,7 @@ app.put('/booking/:bookingId',verifyToken, (req, res) => {
 
 
 
-app.delete('/booking/:id',verifyToken, (req, res) => {
+app.delete('/booking/:id', verifyToken, (req, res) => {
     const bookingId = req.params.id;
 
     const checkQuery = `SELECT * FROM booking WHERE id = ? AND user_id = ?`;
