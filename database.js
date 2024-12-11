@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS contact (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,            
     email TEXT NOT NULL,
-    question TEXT NOT NULL,                          
+    question TEXT NOT NULL,
+    type TEXT NOT NULL,                          
     FOREIGN KEY (user_id) REFERENCES user(id),
     FOREIGN KEY (email) REFERENCES user(email)
     )`
