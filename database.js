@@ -22,7 +22,7 @@ const createResturantTable = `
         min_of_health TEXT,
         maxcapacity INT NOT NULL,
         dietary TEXT ,
-        availablecapacity INT NOT NULL 
+        availablecapacity INT NOT NULL,
         owner_id INTEGER NOT NULL, 
         FOREIGN KEY (owner_id) REFERENCES user(id)
     )`
