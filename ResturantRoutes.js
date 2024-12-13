@@ -28,13 +28,13 @@ var RestaurantRoutes = function (app, db) {
 
         const query = `
         INSERT INTO RESTAURANT 
-        (name, location, cuisine, maxcapacity, availablecapacity, halal, min_of_health, dietary)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (name, location, cuisine, maxcapacity, availablecapacity, halal, min_of_health, dietary, owner_id)
+        VALUES (?,?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     db.run(
         query,
-        [name, location, cuisine, maxcapacity, maxcapacity, halal, min_of_health, dietary],
+        [name, location, cuisine, maxcapacity, maxcapacity, halal, min_of_health, dietary, owner_id],
         (err) => {
             if (err)
                 return res.status(401).send(err)

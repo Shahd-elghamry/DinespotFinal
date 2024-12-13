@@ -20,7 +20,8 @@ var UserRoutes = function (app, db) {
             return res.status(400).send('All fields are required');
         }
 
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[com]{3}$/;
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 
         if (!emailRegex.test(email)) {
             return res.status(400).send('Invalid email format. The email should contain "@*.com".');
@@ -112,6 +113,7 @@ var UserRoutes = function (app, db) {
         let email = req.body.email;
         let password = req.body.password;
         let phonenum = parseInt(req.body.phonenum, 10)
+        
         let updates = []
         let params = []
 
@@ -120,8 +122,14 @@ var UserRoutes = function (app, db) {
             params.push(username);
         }
         if (email) {
-            updates.push(`email = ?`);
-            params.push(email);
+            db.get('SELECT * FROM USER WHERE email = ?', [email], (err, existingUser) => {
+                if (existingUser) {
+                    return res.status(400).send('Email address already exists. Please choose a different one.');
+                }
+    
+                updates.push(`email = ?`);
+                params.push(email);
+            });
         }
         if (password) {
             const hashedPassword = bcrypt.hashSync(password, 10);
@@ -138,7 +146,7 @@ var UserRoutes = function (app, db) {
         }
 
         params.push(userId);
-
+                                                                                                                                                   
         const query = `UPDATE user SET ${updates.join(', ')} WHERE id = ?`;
 
         db.run(query, params, function (err) {
@@ -175,11 +183,33 @@ var UserRoutes = function (app, db) {
         });
     });
 
+    app.post('/user/forgot-password', (req, res) => {
+        let email = req.body.email;
+    
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[com]{3}$/;
+        if (!email || !emailRegex.test(email)) {
+            return res.status(400).send('Invalid email format. Please enter a valid email address.');
+        }
+    
+        db.get('SELECT * FROM USER WHERE EMAIL = ?', [email], (err, row) => {
+            if (err) {
+                return res.status(500).send('An error occurred while checking the email.');
+            }
+    
+            if (!row) {
+                return res.status(404).send('This email is not registered.');
+            }
+    
+            return res.status(200).send('An email with a link to reset password will be sent to this email');
+        });
+    });
+    
+
     return app;
 }
 
 const verifyToken = (req, res, next) => {
-    let verified = req.cookies.auth
+    let verified = req.cookies.auth || req.headers.authorization?.split(" ")[1];
     if (!verified) {
         return res.status(401).send("Login First")
     }

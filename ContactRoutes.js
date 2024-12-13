@@ -22,12 +22,9 @@ var ContactRoutes = function (app, db) {
     });
 
     app.post('/contact', (req, res) => {
-        const email = req.user?.email || req.body.email;
+        const email = req.body.email;
         const question = req.body.question;
 
-        console.log('Request email:', email);
-        console.log('Request question:', question);
-        
         if (!email || !question) {
             return res.status(400).send({ error: 'Email and question are required.' });
         }    
