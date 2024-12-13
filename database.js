@@ -19,7 +19,7 @@ const createResturantTable = `
         location TEXT NOT NULL ,
         cuisine TEXT NOT NULL,
         halal TEXT,
-        min_of_health TEXT,
+        minHealthRating TEXT,
         maxcapacity INT NOT NULL,
         dietary TEXT ,
         availablecapacity INT NOT NULL,
@@ -35,7 +35,7 @@ const createBookingTable = `
         booking_date TEXT NOT NULL,
         booking_time TEXT NOT NULL,
         quantity INTEGER NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending,
+        status TEXT NOT NULL DEFAULT 'pending',
         FOREIGN KEY (user_id) REFERENCES user(id),
         FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
     )`;

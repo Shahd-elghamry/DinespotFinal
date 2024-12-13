@@ -208,22 +208,38 @@ var UserRoutes = function (app, db) {
     return app;
 }
 
+// const verifyToken = (req, res, next) => {
+//     let verified = req.cookies.auth || req.headers.authorization?.split(" ")[1];
+//     if (!verified) {
+//         return res.status(401).send("Login First")
+//     }
+//     // else{
+//     token.verify(verified, secret_key, (err, decoded) => {
+//         if (err) {
+//             return res.status(403).send("Invaild Token")
+//         }
+//         else {
+//             req.user = decoded
+//             next()
+//         }
+//     })
+//     // }
+// }
 const verifyToken = (req, res, next) => {
-    let verified = req.cookies.auth || req.headers.authorization?.split(" ")[1];
-    if (!verified) {
-        return res.status(401).send("Login First")
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(403).send('Access denied: No token provided');
     }
-    // else{
-    token.verify(verified, secret_key, (err, decoded) => {
+
+    jwt.verify(token.split(" ")[1], 'your-secret-key', (err, decoded) => {
         if (err) {
-            return res.status(403).send("Invaild Token")
+            return res.status(500).send({ message: 'Invalid Token' });
         }
-        else {
-            req.user = decoded
-            next()
-        }
-    })
-    // }
-}
+        req.user = decoded; // Attach the user data to the request object
+        next();
+    });
+};
 
 module.exports = { UserRoutes, verifyToken }
