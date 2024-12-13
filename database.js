@@ -35,6 +35,7 @@ const createBookingTable = `
         booking_date TEXT NOT NULL,
         booking_time TEXT NOT NULL,
         quantity INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending,
         FOREIGN KEY (user_id) REFERENCES user(id),
         FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
     )`;

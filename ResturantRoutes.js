@@ -26,6 +26,16 @@ var RestaurantRoutes = function (app, db) {
             return res.status(400).send(`Missing required fields: ${missingFields.join(', ')}`);
         }
 
+        const checkQuery = 'SELECT * FROM RESTAURANT WHERE name = ? AND location = ?';
+    
+        db.get(checkQuery, [name, location], (err, row) => {
+            if (err) {
+                return res.status(500).send(err.message);
+            }
+            if (row) {
+                return res.status(409).send('Restaurant already exists with the same name and location.');
+            }
+
         const query = `
         INSERT INTO RESTAURANT 
         (name, location, cuisine, maxcapacity, availablecapacity, halal, min_of_health, dietary, owner_id)
@@ -42,6 +52,7 @@ var RestaurantRoutes = function (app, db) {
                 return res.status(200).send('Added successfully')
         })
     })
+})
 
     app.get('/resturant', (req, res) => {
         const query = 'SELECT * FROM RESTURANT'; 

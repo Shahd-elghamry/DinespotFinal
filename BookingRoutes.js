@@ -35,8 +35,8 @@ app.put('/resturant/book',verifyToken, (req, res) => {
                         return res.json(err)
                     }
                     else {
-                        const bookingQuery = `INSERT INTO booking (user_id, restaurant_id, booking_date, booking_time, quantity) 
-                        VALUES (?, ?, ?, ?, ?)`;
+                        const bookingQuery = `INSERT INTO booking (user_id, restaurant_id, booking_date, booking_time, quantity,status) 
+                        VALUES (?, ?, ?, ?, ?, 'pending')`;
                         db.run(bookingQuery, [userId, resID, date, time, quantity], (err) => {
                             if (err) {
                                 console.log(err)
@@ -54,7 +54,7 @@ app.put('/resturant/book',verifyToken, (req, res) => {
 })
 
 
-app.get('/bookings',verifyToken, (req, res) => {
+app.get('/bookings', verifyToken, (req, res) => {
     const query = 'SELECT * FROM booking';
     db.all(query, (err, rows) => {
         if (err) {
@@ -90,7 +90,12 @@ app.get('/booking/:userId',verifyToken, (req, res) => {
 
 app.put('/booking/:bookingId',verifyToken, (req, res) => {
     const bookingId = req.params.bookingId;
-    const { user_id, restaurant_id, booking_date, booking_time, quantity } = req.body;
+    const { user_id, restaurant_id, booking_date, booking_time, quantity, status } = req.body;
+
+
+    if (status && !['pending', 'confirmed', 'cancelled'].includes(status)) {
+        return res.status(400).send('Invalid status. Allowed values are "pending", "confirmed", or "cancelled".');
+    }
 
     const checkQuery = `SELECT * FROM booking WHERE id = ? AND user_id = ?`;
     db.get(checkQuery, [bookingId, req.user.id], (err, row) => {
@@ -106,11 +111,31 @@ app.put('/booking/:bookingId',verifyToken, (req, res) => {
     const updates = [];
     const params = [];
 
-    if (user_id) updates.push(`user_id = ?`) && params.push(user_id);
-    if (restaurant_id) updates.push(`restaurant_id = ?`) && params.push(restaurant_id);
-    if (booking_date) updates.push(`booking_date = ?`) && params.push(booking_date);
-    if (booking_time) updates.push(`booking_time = ?`) && params.push(booking_time);
-    if (quantity) updates.push(`quantity = ?`) && params.push(quantity);
+
+       if (status) {
+            updates.push(`status = ?`);
+            params.push(status);
+        }
+        if (user_id) {
+            updates.push(`user_id = ?`);
+            params.push(user_id);
+        }
+        if (restaurant_id) {
+            updates.push(`restaurant_id = ?`);
+            params.push(restaurant_id);
+        }
+        if (booking_date) {
+            updates.push(`booking_date = ?`);
+            params.push(booking_date);
+        }
+        if (booking_time) {
+            updates.push(`booking_time = ?`);
+            params.push(booking_time);
+        }
+        if (quantity) {
+            updates.push(`quantity = ?`);
+            params.push(quantity);
+        }
 
     if (updates.length === 0) {
         return res.status(400).send('No fields to update. Please provide at least one field.');
@@ -145,7 +170,7 @@ app.delete('/booking/:id', verifyToken, (req, res) => {
                 return res.status(404).send(`No booking found with id ${bookingId}`);
             }
 
-            const query = `DELETE FROM booking WHERE id = ?`;
+            const updateQuery = `UPDATE booking SET status = 'cancelled' WHERE id = ?`;
 
         db.run(query, [bookingId], (err) => {
         if (err) {
@@ -153,7 +178,7 @@ app.delete('/booking/:id', verifyToken, (req, res) => {
             return res.status(500).send("Error deleting booking");
         }
         else
-            return res.status(200).send(`booking with id ${bookingId} deleted successfully`);
+            return res.status(200).send(`booking with id ${bookingId} cancelled successfully`);
     });
 });
 })
