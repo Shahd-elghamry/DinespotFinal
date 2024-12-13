@@ -1,6 +1,8 @@
 const token = require('jsonwebtoken')
 const secret_key = 'asdfghjklertyuiodfghjdbh8u'
 const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken');
+
 
 const generatetoken = (id, user_type, email, username) => {
     return token.sign({ id, user_type, email, username }, secret_key, { expiresIn: '5h' })
@@ -34,13 +36,26 @@ var UserRoutes = function (app, db) {
             }
 
             query = `INSERT INTO USER(username, email, password, phonenum, user_type) VALUES (?, ?, ?, ?, ?)`
-            db.run(query, [username, email, hashedPassword, phonenum, user_type], (err) => {
+            db.run(query, [username, email, hashedPassword, phonenum, user_type], function(err) {
                 if (err) {
                     console.log(err.message)
                     return res.status(401).send(err)
                 }
-                return res.status(200).send('registeration successful')
-
+                const token = generatetoken(this.lastID, user_type, email, username);
+                
+                res.cookie('auth', token, {
+                    httpOnly: true,
+                    sameSite: 'strict',
+                    maxAge: 5 * 60 * 60 * 1000, // 5 hours
+                });
+                return res.status(200).json({
+                    message: 'Registration successful',
+                    token,
+                    userId: this.lastID,
+                    userType: user_type,
+                    email: email,
+                    username: username
+                });
             })
         })
 
@@ -61,19 +76,14 @@ var UserRoutes = function (app, db) {
                 if (err) {
                     return res.status(500).json({ message: "Error comparing passwords" });
                 }
-
                 if (!isMatch) {
                     return res.status(401).json({ message: "Invalid credentials" });
                 }
 
-                // Password matched, generate token
-                let userType = row.user_type;
-                let userID = row.id;
-                let username = row.username;
-                const generatedtoken = generatetoken(userID, userType, email, username);
+                const token = generatetoken(row.id, row.user_type, row.email, row.username);
 
                 // Set the token as a cookie
-                res.cookie('auth', generatedtoken, {
+                res.cookie('auth', token, {
                     httpOnly: true,
                     sameSite: 'strict',
                     maxAge: 5 * 60 * 60 * 1000
@@ -81,10 +91,10 @@ var UserRoutes = function (app, db) {
 
                 return res.status(200).json({
                     message: 'Login successful',
-                    token: generatedtoken,
-                    username: username,
-                    userType: userType,
-                    email: email
+                    token,
+                    username: row.username,
+                    userType: row.user_type,
+                    email: row.email
                 });
             });
         });
@@ -207,37 +217,23 @@ var UserRoutes = function (app, db) {
 
     return app;
 }
-
-// const verifyToken = (req, res, next) => {
-//     let verified = req.cookies.auth || req.headers.authorization?.split(" ")[1];
-//     if (!verified) {
-//         return res.status(401).send("Login First")
-//     }
-//     // else{
-//     token.verify(verified, secret_key, (err, decoded) => {
-//         if (err) {
-//             return res.status(403).send("Invaild Token")
-//         }
-//         else {
-//             req.user = decoded
-//             next()
-//         }
-//     })
-//     // }
-// }
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
+    const cookieToken = req.cookies.auth;
 
-    if (!token) {
+    if (!token && !cookieToken ) {
         return res.status(403).send('Access denied: No token provided');
     }
 
-    jwt.verify(token.split(" ")[1], 'your-secret-key', (err, decoded) => {
+    const verifiedToken = token || cookieToken;
+
+    jwt.verify(verifiedToken, secret_key, (err, decoded) => {
         if (err) {
             return res.status(500).send({ message: 'Invalid Token' });
         }
-        req.user = decoded; // Attach the user data to the request object
+        req.user = decoded; 
+        console.log("Decoded Token in Middleware:", req.user);
         next();
     });
 };

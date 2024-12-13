@@ -3,13 +3,23 @@ const { verifyToken } = require("./userRoutes")
 var RestaurantRoutes = function (app, db) {
 
     app.post('/addresturant', verifyToken, (req, res) => {
+        console.log("Request User Data:", req.user); // Log user data from token
+
         const { name, location, cuisine, maxcapacity, halal, minHealthRating, dietary } = req.body;
     
+        if (!req.user || !req.user.id) {
+            console.error("User ID not found in token");
+            return res.status(401).send('User ID not found in token. Please login again.');
+        }
+
         const owner_id = req.user.id;
+        console.log("Owner ID:", owner_id);
+
         if (!['admin', 'restaurant_owner'].includes(req.user.user_type)) {
             return res.status(403).send('Access denied: You are not authorized to add a restaurant.');
         }
-    
+        console.log("Decoded Token:", req.user);
+
     
         const missingFields = [];
         if (!name) missingFields.push('name');
