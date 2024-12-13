@@ -38,8 +38,19 @@ var UserRoutes = function (app, db) {
             query = `INSERT INTO USER(username, email, password, phonenum, user_type) VALUES (?, ?, ?, ?, ?)`
             db.run(query, [username, email, hashedPassword, phonenum, user_type], function(err) {
                 if (err) {
-                    console.log(err.message)
-                    return res.status(401).send(err)
+                    console.log('Database error:', err.message);
+                    if (err.code === 'SQLITE_CONSTRAINT') {
+                        if (err.message.includes('UNIQUE')) {
+                            return res.status(409).json({
+                                error: 'Email already exists',
+                                message: 'An account with this email address already exists. Please use a different email or try logging in.'
+                            });
+                        }
+                    }
+                    return res.status(500).json({
+                        error: 'Registration failed',
+                        message: 'An error occurred during registration. Please try again.'
+                    });
                 }
                 const token = generatetoken(this.lastID, user_type, email, username);
                 
