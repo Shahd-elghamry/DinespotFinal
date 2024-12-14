@@ -1,4 +1,3 @@
-
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('dinespot.db');
 
@@ -62,41 +61,20 @@ CREATE TABLE IF NOT EXISTS contact (
 
     
     db.serialize(() => { // Executes in a synchronously order 
-        db.exec(createUserTable, (err) => {
+        db.run(createUserTable);
+        db.run(createResturantTable);
+        db.run(createBookingTable);
+        db.run(createReviewTable);
+
+        // Add special_requests column if it doesn't exist
+        db.run(`ALTER TABLE booking ADD COLUMN special_requests TEXT;`, (err) => {
             if (err) {
-                console.error("Error creating user table:", err);
-            } else {
-                console.log("User table created successfully!");
+                // Column might already exist, which is fine
+                console.log('Note:', err.message);
             }
         });
-        db.exec(createResturantTable, (err) => {
-            if (err) {
-                console.error("Error creating Resturant table:", err);
-            } else {
-                console.log("Resturant table created successfully!");
-            }
-        });
-        db.exec(createBookingTable, (err) => {
-            if (err) {
-                console.error("Error creating Booking table:", err);
-            } else {
-                console.log("Booking table created successfully!");
-            }
-        });
-        db.exec(createReviewTable, (err) => {
-            if (err) {
-                console.error("Error creating Review table:", err);
-            } else {
-                console.log("Review table created successfully!");
-            }
-        });
-        db.exec(createContactTable, (err) => {
-            if (err) {
-                console.error("Error creating Contact table:", err);
-            } else {
-                console.log("Contact table created successfully!");
-            }
-        });
+
+        db.run(createContactTable);
     });
     
 module.exports = {db, createResturantTable, createUserTable, createBookingTable, createReviewTable, createContactTable}
