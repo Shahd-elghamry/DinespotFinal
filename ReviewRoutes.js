@@ -27,19 +27,59 @@ var ReviewRoutes = function (app, db) {
         });
     });    
 
-    app.get('/review', (req, res) => {
-        const query = 'SELECT * FROM review'
-        db.all(query, (err, rows) => {
-            if (err) {
-                console.log(err)
-                return res.status(500).send(err)
-            }
-            else {
-                return res.json(rows)
-            }
-        })
-    })
+    app.get('/review/:restaurantId', (req, res) => {
+        const restaurantId = req.params.restaurantId;
+        
+        const query = `
+            SELECT 
+                r.*,
+                u.username as userName
+            FROM review r
+            JOIN user u ON r.user_id = u.id
+            WHERE r.restaurant_id = ?
+            ORDER BY r.id DESC`;
 
+        db.all(query, [restaurantId], (err, rows) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).send('Error retrieving reviews');
+            }
+            if (rows.length === 0) {
+                return res.status(404).send('No reviews found for this restaurant');
+            }
+            return res.json(rows);
+        });
+    });
+
+    app.get('/review/:userId', verifyToken, (req, res) => {
+        const userId = req.params.userId;
+
+        // Verify that the user is requesting their own reviews
+        if (req.user.id !== parseInt(userId, 10)) {
+            return res.status(403).send('Access denied. You can only view your own reviews.');
+        }
+
+        const query = `
+            SELECT 
+                r.*, 
+                res.name as restaurant_name, 
+                res.location as restaurant_location 
+            FROM review r
+            JOIN resturant res ON r.restaurant_id = res.id
+            WHERE r.user_id = ?
+            ORDER BY r.id DESC`;
+
+        db.all(query, [userId], (err, rows) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).send('Error retrieving reviews');
+            }
+            if (rows.length === 0) {
+                return res.status(404).send('No reviews found for this user');
+            }
+            return res.json(rows);
+        });
+    });
 
     app.delete('/review/:id',verifyToken, (req, res) => {
         const reviewID = req.params.id;
