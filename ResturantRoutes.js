@@ -127,6 +127,21 @@ var RestaurantRoutes = function (app, db) {
         });
     });
 
+    app.get('/resturant/:id', (req, res) => {
+        const restaurantId = req.params.id;
+        
+        const query = 'SELECT * FROM resturant WHERE id = ?';
+        db.get(query, [restaurantId], (err, row) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).send('Error retrieving restaurant');
+            }
+            if (!row) {
+                return res.status(404).send('Restaurant not found');
+            }
+            res.status(200).json(row);
+        });
+    });
 
     app.put('/resturant/edit/:id',verifyToken, (req, res) => {
         const resID = parseInt(req.params.id, 10);
