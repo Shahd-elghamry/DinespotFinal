@@ -153,7 +153,50 @@ app.delete('/booking/:id', verifyToken, (req, res) => {
     });
 });
 })
-    
+
+app.get('/booking/restaurant/:restaurantId', verifyToken, async (req, res) => {
+    const restaurantId = parseInt(req.params.restaurantId, 10);
+
+    // First check if the user is authorized to view these bookings
+    const restaurantQuery = 'SELECT owner_id FROM resturant WHERE id = ?';
+    db.get(restaurantQuery, [restaurantId], (err, restaurant) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).send('Error checking restaurant ownership');
+        }
+
+        if (!restaurant) {
+            return res.status(404).send('Restaurant not found');
+        }
+
+        // Check if user is admin or restaurant owner
+        if (req.user.user_type !== 'admin' && restaurant.owner_id !== req.user.id) {
+            return res.status(403).send('You are not authorized to view these bookings');
+        }
+
+        // If authorized, get all bookings for this restaurant
+        const bookingsQuery = `
+            SELECT b.*, u.username as user_name 
+            FROM booking b
+            JOIN user u ON b.user_id = u.id
+            WHERE b.restaurant_id = ?
+            ORDER BY b.booking_date DESC, b.booking_time DESC`;
+
+        db.all(bookingsQuery, [restaurantId], (err, bookings) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).send('Error retrieving bookings');
+            }
+
+            if (bookings.length === 0) {
+                return res.status(404).send('No bookings found for this restaurant');
+            }
+
+            return res.json(bookings);
+        });
+    });
+});
+
     return app;
 }
 
