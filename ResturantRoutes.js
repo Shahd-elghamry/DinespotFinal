@@ -147,7 +147,7 @@ var RestaurantRoutes = function (app, db) {
         const resID = parseInt(req.params.id, 10);
         const userID = req.user.id;  //Only admins or restaurant owners can access
 
-        db.get('SELECT * FROM restaurant WHERE id = ?', [resID], (err, row) => {
+        db.get('SELECT * FROM resturant WHERE id = ?', [resID], (err, row) => {
             if (err) {
                 console.log(err);
                 return res.status(500).send('Error checking restaurant ownership.');
@@ -206,7 +206,7 @@ var RestaurantRoutes = function (app, db) {
         }
     
         params.push(resID);
-        const query = `UPDATE restaurant SET ${updates.join(', ')} WHERE ID = ?`;
+        const query = `UPDATE resturant SET ${updates.join(', ')} WHERE ID = ?`;
     
         db.run(query, params, function (err) {
             if (err) {
