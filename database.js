@@ -1,4 +1,3 @@
-
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('dinespot.db');
 
@@ -19,10 +18,10 @@ const createResturantTable = `
         location TEXT NOT NULL ,
         cuisine TEXT NOT NULL,
         halal TEXT,
-        min_of_health TEXT,
+        minHealthRating TEXT,
         maxcapacity INT NOT NULL,
         dietary TEXT ,
-        availablecapacity INT NOT NULL 
+        availablecapacity INT NOT NULL,
         owner_id INTEGER NOT NULL, 
         FOREIGN KEY (owner_id) REFERENCES user(id)
     )`
@@ -35,30 +34,30 @@ const createBookingTable = `
         booking_date TEXT NOT NULL,
         booking_time TEXT NOT NULL,
         quantity INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        special_requests TEXT,
         FOREIGN KEY (user_id) REFERENCES user(id),
         FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
     )`;
 
 const createReviewTable = `
-CREATE TABLE IF NOT EXISTS review (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,            
-    restaurant_id INTEGER NOT NULL,      
-    rating INTEGER NOT NULL,     
-    review TEXT,                          
-    FOREIGN KEY (user_id) REFERENCES user(id),
-    FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
+    CREATE TABLE IF NOT EXISTS review (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,            
+        restaurant_id INTEGER NOT NULL,      
+        rating INTEGER NOT NULL,     
+        review TEXT,                          
+        FOREIGN KEY (user_id) REFERENCES user(id),
+        FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
     )`;
 
 const createContactTable = `
-CREATE TABLE IF NOT EXISTS contact (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,            
-    email TEXT NOT NULL,
-    question TEXT NOT NULL,                          
-    FOREIGN KEY (user_id) REFERENCES user(id),
-    FOREIGN KEY (email) REFERENCES user(email)
-    )`
+    CREATE TABLE IF NOT EXISTS contact (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        message TEXT NOT NULL
+    )`;
 
     db.serialize(() => { // Executes in a synchronously order 
         db.exec(createUserTable, (err) => {
@@ -96,6 +95,6 @@ CREATE TABLE IF NOT EXISTS contact (
                 console.log("Contact table created successfully!");
             }
         });
-    });
-    
+});
+
 module.exports = {db, createResturantTable, createUserTable, createBookingTable, createReviewTable, createContactTable}

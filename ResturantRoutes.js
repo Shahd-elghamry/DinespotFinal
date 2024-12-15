@@ -2,46 +2,78 @@ const { verifyToken } = require("./userRoutes")
 
 var RestaurantRoutes = function (app, db) {
 
-    app.post('/addresturant',verifyToken, (req, res) => {
-        let name = req.body.name
-        let location = req.body.location
-        let cuisine = req.body.cuisine
-        let maxcapacity = parseInt(req.body.maxcapacity, 10)
-        let halal = req.body.halal
-        let min_of_health = req.body.min_of_health
-        let dietary = req.body.dietary
+    app.post('/addresturant', verifyToken, (req, res) => {
+        console.log("Request User Data:", req.user); // Log user data from token
 
-        const owner_id = req.user.id; 
-
-        if (req.user.user_type !== 'admin' && req.user.user_type !== 'restaurant_owner') {
-            return res.status(403).send('Access denied: You are not authorized to add a restaurant');
+        const { name, location, cuisine, maxcapacity, halal, minHealthRating, dietary } = req.body;
+    
+        if (!req.user || !req.user.id) {
+            console.error("User ID not found in token");
+            return res.status(401).send('User ID not found in token. Please login again.');
         }
 
+        const owner_id = req.user.id;
+        console.log("Owner ID:", owner_id);
+
+        if (!['admin', 'restaurant_owner'].includes(req.user.user_type)) {
+            return res.status(403).send('Access denied: You are not authorized to add a restaurant.');
+        }
+        console.log("Decoded Token:", req.user);
+
+    
         const missingFields = [];
         if (!name) missingFields.push('name');
         if (!location) missingFields.push('location');
         if (!cuisine) missingFields.push('cuisine');
-
         if (missingFields.length > 0) {
             return res.status(400).send(`Missing required fields: ${missingFields.join(', ')}`);
         }
-
-        const query = `
-        INSERT INTO RESTAURANT 
-        (name, location, cuisine, maxcapacity, availablecapacity, halal, min_of_health, dietary)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    db.run(
-        query,
-        [name, location, cuisine, maxcapacity, maxcapacity, halal, min_of_health, dietary],
-        (err) => {
-            if (err)
-                return res.status(401).send(err)
-            else
-                return res.status(200).send('Added successfully')
-        })
-    })
+    
+        const parsedMaxCapacity = parseInt(maxcapacity, 10);
+        if (isNaN(parsedMaxCapacity) || parsedMaxCapacity <= 0) {
+            return res.status(400).send('Invalid value for maxcapacity. It should be a positive number.');
+        }
+    
+        const checkQuery = 'SELECT * FROM resturant WHERE name = ? AND location = ?';
+        db.get(checkQuery, [name.trim(), location.trim()], (err, row) => {
+            if (err) {
+                console.error('Database error',err)
+                return res.status(500).send(err.message,'Error while checking existing restaurants.');
+            }
+            if (row) {
+                return res.status(409).send('A restaurant with the same name and location already exists.');
+            }
+    
+            const insertQuery = `
+                INSERT INTO resturant 
+                (name, location, cuisine, maxcapacity, availablecapacity, halal, minHealthRating, dietary, owner_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            db.run(
+                insertQuery,
+                [
+                    name.trim(),
+                    location.trim(),
+                    cuisine.trim(),
+                    parsedMaxCapacity,
+                    parsedMaxCapacity,
+                    halal ? halal.trim() : null,
+                    minHealthRating ? minHealthRating.trim() : null,
+                    dietary ? dietary.trim() : null,
+                    owner_id,
+                ],
+                (err) => {
+                    if (err) {
+                        console.error('Database error',err)
+                        return res.status(500).send(err.message || 'error while adding'); 
+                    }
+                    res.status(200).send('Restaurant added successfully.');
+                }
+            );
+        });
+    });
+    
+    
 
     app.get('/resturant', (req, res) => {
         const query = 'SELECT * FROM RESTURANT'; 
@@ -95,6 +127,21 @@ var RestaurantRoutes = function (app, db) {
         });
     });
 
+    app.get('/resturant/:id', (req, res) => {
+        const restaurantId = req.params.id;
+        
+        const query = 'SELECT * FROM resturant WHERE id = ?';
+        db.get(query, [restaurantId], (err, row) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).send('Error retrieving restaurant');
+            }
+            if (!row) {
+                return res.status(404).send('Restaurant not found');
+            }
+            res.status(200).json(row);
+        });
+    });
 
     app.put('/resturant/edit/:id',verifyToken, (req, res) => {
         const resID = parseInt(req.params.id, 10);
@@ -119,7 +166,7 @@ var RestaurantRoutes = function (app, db) {
         let cuisine = req.body.cuisine
         let maxcapacity = parseInt(req.body.maxcapacity, 10)
         let halal = req.body.halal
-        let min_of_health = req.body.min_of_health
+        let minHealthRating = req.body.minHealthRating
         let dietary = req.body.dietary
     
         let updates = []
@@ -145,9 +192,9 @@ var RestaurantRoutes = function (app, db) {
             updates.push('halal = ?');
             params.push(halal);
         }
-        if (min_of_health) {
-            updates.push('min_of_health = ?');
-            params.push(min_of_health);
+        if (minHealthRating) {
+            updates.push('minHealthRating = ?');
+            params.push(minHealthRating);
         }
         if (dietary) {
             updates.push('dietary = ?');
