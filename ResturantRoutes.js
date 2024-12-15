@@ -143,11 +143,32 @@ var RestaurantRoutes = function (app, db) {
         });
     });
 
+    app.get('/resturant/owner/:ownerId', verifyToken, (req, res) => {
+        const ownerId = parseInt(req.params.ownerId, 10);
+        
+        // Verify that the requesting user is either the owner or an admin
+        if (req.user.id !== ownerId && req.user.user_type !== 'admin') {
+            return res.status(403).send('You are not authorized to view these restaurants');
+        }
+
+        const query = 'SELECT * FROM resturant WHERE owner_id = ?';
+        db.all(query, [ownerId], (err, rows) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).send('Error retrieving restaurants');
+            }
+            if (rows.length === 0) {
+                return res.status(404).send('No restaurants found for this owner');
+            }
+            return res.json(rows);
+        });
+    });
+
     app.put('/resturant/edit/:id',verifyToken, (req, res) => {
         const resID = parseInt(req.params.id, 10);
         const userID = req.user.id;  //Only admins or restaurant owners can access
 
-        db.get('SELECT * FROM resturant WHERE id = ?', [resID], (err, row) => {
+        db.get('SELECT * FROM restaurant WHERE id = ?', [resID], (err, row) => {
             if (err) {
                 console.log(err);
                 return res.status(500).send('Error checking restaurant ownership.');
@@ -206,7 +227,7 @@ var RestaurantRoutes = function (app, db) {
         }
     
         params.push(resID);
-        const query = `UPDATE resturant SET ${updates.join(', ')} WHERE ID = ?`;
+        const query = `UPDATE restaurant SET ${updates.join(', ')} WHERE ID = ?`;
     
         db.run(query, params, function (err) {
             if (err) {
