@@ -308,6 +308,55 @@ var UserRoutes = function (app, db) {
         );
     });
 
+    // Admin routes
+    const isAdmin = (req, res, next) => {
+        if (req.user && req.user.user_type === 'admin') {
+            next();
+        } else {
+            res.status(403).json({ message: 'Access denied: Admin privileges required' });
+        }
+    };
+
+    // Get all users (admin only)
+    app.get('/admin/users', verifyToken, isAdmin, (req, res) => {
+        db.all(
+            'SELECT id, username, email, user_type, phonenum FROM USER',
+            [],
+            (err, users) => {
+                if (err) {
+                    console.error("Database error:", err);
+                    return res.status(500).json({ message: "Error fetching users" });
+                }
+                res.json(users);
+            }
+        );
+    });
+
+    // Delete user (admin only)
+    app.delete('/admin/users/:userId', verifyToken, isAdmin, (req, res) => {
+        const userId = req.params.userId;
+        
+        // Don't allow admin to delete themselves
+        if (userId === req.user.id) {
+            return res.status(400).json({ message: "Cannot delete your own admin account" });
+        }
+
+        db.run(
+            'DELETE FROM USER WHERE id = ?',
+            [userId],
+            function(err) {
+                if (err) {
+                    console.error("Database error:", err);
+                    return res.status(500).json({ message: "Error deleting user" });
+                }
+                if (this.changes === 0) {
+                    return res.status(404).json({ message: "User not found" });
+                }
+                res.json({ message: "User deleted successfully" });
+            }
+        );
+    });
+
     return app;
 }
 
