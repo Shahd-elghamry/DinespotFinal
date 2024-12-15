@@ -19,20 +19,20 @@ var UserRoutes = function (app, db) {
         let phonenum = req.body.phonenum
 
         if (!username || !email || !password || !phonenum) {
-            return res.status(400).send('All fields are required');
+            return res.status(400).json({ message: 'All fields are required' });
         }
 
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 
         if (!emailRegex.test(email)) {
-            return res.status(400).send('Invalid email format. The email should contain "@*.com".');
+            return res.status(400).json({ message: 'Invalid email format. The email should contain "@*.com".' });
         }
 
         bcrypt.hash(password, 10, (hashErr, hashedPassword) => {
             if (hashErr) {
                 console.error(hashErr);
-                return res.status(500).send('An error occurred while securing the password');
+                return res.status(500).json({ message: 'An error occurred while securing the password' });
             }
 
             query = `INSERT INTO USER(username, email, password, phonenum, user_type) VALUES (?, ?, ?, ?, ?)`
@@ -103,9 +103,11 @@ var UserRoutes = function (app, db) {
                 return res.status(200).json({
                     message: 'Login successful',
                     token,
-                    username: row.username,
+                    userId: row.id,
                     userType: row.user_type,
-                    email: row.email
+                    email: row.email,
+                    username: row.username,
+                    phonenum: row.phonenum
                 });
             });
         });
@@ -113,13 +115,13 @@ var UserRoutes = function (app, db) {
 
     app.get('/users', verifyToken, (req, res) => {
         if (req.info.user_type !== 'admin') {
-            return res.status(403).send("You are not an admin")
+            return res.status(403).json({ message: "You are not an admin" });
         }
         const query = 'SELECT * FROM USER'
         db.all(query, (err, rows) => {
             if (err) {
                 console.log(err)
-                return res.send(err)
+                return res.json({ message: 'Error fetching users' });
             }
             else {
                 return res.json(rows)
@@ -127,60 +129,99 @@ var UserRoutes = function (app, db) {
         })
     });
 
-    app.put('/user/edit/:id', verifyToken, (req, res) => {
+    app.get('/user/:id', verifyToken, (req, res) => {
+        const userId = parseInt(req.params.id, 10);
+        
+        // Check if user is requesting their own info or is an admin
+        if (req.user.id !== userId && req.user.user_type !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. You can only view your own profile.' });
+        }
+
+        const query = `
+            SELECT id, username, email, phonenum, user_type 
+            FROM user 
+            WHERE id = ?`;
+            
+        db.get(query, [userId], (err, row) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: 'Error retrieving user information' });
+            }
+            if (!row) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            // Don't send sensitive information like password
+            return res.json(row);
+        });
+    });
+
+    app.put('/user/edit/:id', verifyToken, async (req, res) => {
         const userId = req.user.id;
 
         let username = req.body.username;
         let email = req.body.email;
         let password = req.body.password;
-        let phonenum = parseInt(req.body.phonenum, 10)
+        let phonenum = parseInt(req.body.phonenum, 10);
         
-        let updates = []
-        let params = []
+        let updates = [];
+        let params = [];
 
         if (username) {
             updates.push(`username = ?`);
             params.push(username);
         }
+        
         if (email) {
-            db.get('SELECT * FROM USER WHERE email = ?', [email], (err, existingUser) => {
+            try {
+                // Check if email exists (for another user)
+                const existingUser = await new Promise((resolve, reject) => {
+                    db.get('SELECT * FROM USER WHERE email = ? AND id != ?', [email, userId], (err, row) => {
+                        if (err) reject(err);
+                        resolve(row);
+                    });
+                });
+
                 if (existingUser) {
-                    return res.status(400).send('Email address already exists. Please choose a different one.');
+                    return res.status(400).json({ message: 'Email address already exists. Please choose a different one.' });
                 }
-    
+
                 updates.push(`email = ?`);
                 params.push(email);
-            });
+            } catch (err) {
+                console.error(err);
+                return res.status(500).json({ message: 'Error checking email availability' });
+            }
         }
+
         if (password) {
             const hashedPassword = bcrypt.hashSync(password, 10);
             updates.push(`password = ?`);
             params.push(hashedPassword);
         }
+
         if (phonenum) {
             updates.push(`phonenum = ?`);
             params.push(phonenum);
         }
 
         if (updates.length === 0) {
-            return res.status(400).send('No fields to update. Provide at least one field.');
+            return res.status(400).json({ message: 'No fields to update. Provide at least one field.' });
         }
 
         params.push(userId);
-                                                                                                                                                   
         const query = `UPDATE user SET ${updates.join(', ')} WHERE id = ?`;
 
         db.run(query, params, function (err) {
             if (err) {
                 console.log(err);
-                return res.status(500).send('An error occurred while updating the user.');
+                return res.status(500).json({ message: 'An error occurred while updating the user.' });
             }
 
             if (this.changes === 0) {
-                return res.status(404).send('No user found with the provided ID.');
+                return res.status(404).json({ message: 'No user found with the provided ID.' });
             }
 
-            return res.send(`User with ID ${req.params.id} updated successfully.`);
+            res.json({ message: `User with ID ${userId} updated successfully.` });
         });
     });
 
@@ -188,19 +229,19 @@ var UserRoutes = function (app, db) {
         const userIdToDelete = req.user.id;
 
         if (isNaN(userIdToDelete)) {
-            return res.status(400).send("Invalid user ID");
+            return res.status(400).json({ message: "Invalid user ID" });
         }
         const query = `DELETE FROM USER WHERE id = ?`;
 
         db.run(query, [userIdToDelete], function (err) {
             if (err) {
                 console.log(err);
-                return res.status(500).send("Error deleting user");
+                return res.status(500).json({ message: "Error deleting user" });
             }
             if (this.changes === 0) {
-                return res.status(404).send("No user found with the provided ID");
+                return res.status(404).json({ message: "No user found with the provided ID" });
             }
-            return res.status(200).send(`User with id ${userIdToDelete} deleted successfully`);
+            return res.status(200).json({ message: `User with id ${userIdToDelete} deleted successfully` });
         });
     });
 
@@ -209,44 +250,100 @@ var UserRoutes = function (app, db) {
     
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[com]{3}$/;
         if (!email || !emailRegex.test(email)) {
-            return res.status(400).send('Invalid email format. Please enter a valid email address.');
+            return res.status(400).json({ message: 'Invalid email format. Please enter a valid email address.' });
         }
     
         db.get('SELECT * FROM USER WHERE EMAIL = ?', [email], (err, row) => {
             if (err) {
-                return res.status(500).send('An error occurred while checking the email.');
+                return res.status(500).json({ message: 'An error occurred while checking the email.' });
             }
     
             if (!row) {
-                return res.status(404).send('This email is not registered.');
+                return res.status(404).json({ message: 'This email is not registered.' });
             }
     
-            return res.status(200).send('An email with a link to reset password will be sent to this email');
+            return res.status(200).json({ message: 'An email with a link to reset password will be sent to this email' });
         });
     });
     
 
+    // Get user profile endpoint
+    app.get('/user/profile', verifyToken, (req, res) => {
+        const userId = req.user.id;
+        console.log("Fetching profile for user:", userId);
+        
+        if (!userId) {
+            return res.status(400).json({ message: "User ID not found in token" });
+        }
+        
+        db.get(
+            `SELECT id, username, email, user_type, phonenum, created_at, 
+            (SELECT COUNT(*) FROM RESTAURANT WHERE owner_id = USER.id) as restaurantsCount 
+            FROM USER WHERE id = ?`,
+            [userId],
+            (err, user) => {
+                if (err) {
+                    console.error("Database error:", err);
+                    return res.status(500).json({ message: "Error fetching user profile" });
+                }
+                if (!user) {
+                    return res.status(404).json({ message: "User not found" });
+                }
+
+                // Format the response
+                const userProfile = {
+                    id: user.id,
+                    name: user.username,
+                    email: user.email,
+                    userType: user.user_type,
+                    phone: user.phonenum,
+                    createdAt: user.created_at,
+                    lastLogin: new Date().toISOString(),
+                    restaurantsCount: user.restaurantsCount
+                };
+
+                console.log("Sending user profile:", userProfile);
+                res.json(userProfile);
+            }
+        );
+    });
+
     return app;
 }
+
 const verifyToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    const cookieToken = req.cookies.auth;
+    try {
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        const cookieToken = req.cookies ? req.cookies.auth : null;
 
-    if (!token && !cookieToken ) {
-        return res.status(403).send('Access denied: No token provided');
-    }
-
-    const verifiedToken = token || cookieToken;
-
-    jwt.verify(verifiedToken, secret_key, (err, decoded) => {
-        if (err) {
-            return res.status(500).send({ message: 'Invalid Token' });
+        if (!token && !cookieToken) {
+            return res.status(403).json({ message: 'Access denied: No token provided' });
         }
-        req.user = decoded; 
-        console.log("Decoded Token in Middleware:", req.user);
-        next();
-    });
+
+        const verifiedToken = token || cookieToken;
+
+        jwt.verify(verifiedToken, secret_key, (err, decoded) => {
+            if (err) {
+                console.error("Token verification error:", err);
+                return res.status(401).json({ message: 'Invalid Token' });
+            }
+            
+            // Add more user information to the request
+            req.user = {
+                id: decoded.id,
+                email: decoded.email,
+                username: decoded.username,
+                user_type: decoded.user_type
+            };
+            
+            console.log("Decoded Token in Middleware:", req.user);
+            next();
+        });
+    } catch (error) {
+        console.error("Error in verifyToken middleware:", error);
+        return res.status(500).json({ message: 'Server error in token verification' });
+    }
 };
 
 module.exports = { UserRoutes, verifyToken }

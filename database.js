@@ -35,46 +35,66 @@ const createBookingTable = `
         booking_time TEXT NOT NULL,
         quantity INTEGER NOT NULL,
         status TEXT NOT NULL DEFAULT 'pending',
+        special_requests TEXT,
         FOREIGN KEY (user_id) REFERENCES user(id),
         FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
     )`;
 
 const createReviewTable = `
-CREATE TABLE IF NOT EXISTS review (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,            
-    restaurant_id INTEGER NOT NULL,      
-    rating INTEGER NOT NULL,     
-    review TEXT,                          
-    FOREIGN KEY (user_id) REFERENCES user(id),
-    FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
+    CREATE TABLE IF NOT EXISTS review (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,            
+        restaurant_id INTEGER NOT NULL,      
+        rating INTEGER NOT NULL,     
+        review TEXT,                          
+        FOREIGN KEY (user_id) REFERENCES user(id),
+        FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
     )`;
 
 const createContactTable = `
-CREATE TABLE IF NOT EXISTS contact (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT NOT NULL,
-    question TEXT NOT NULL
-    )`
+    CREATE TABLE IF NOT EXISTS contact (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        message TEXT NOT NULL
+    )`;
 
-    /////FOREIGN KEY (email) REFERENCES user(email)
-
-    
     db.serialize(() => { // Executes in a synchronously order 
-        db.run(createUserTable);
-        db.run(createResturantTable);
-        db.run(createBookingTable);
-        db.run(createReviewTable);
-
-        // Add special_requests column if it doesn't exist
-        db.run(`ALTER TABLE booking ADD COLUMN special_requests TEXT;`, (err) => {
+        db.exec(createUserTable, (err) => {
             if (err) {
-                // Column might already exist, which is fine
-                console.log('Note:', err.message);
+                console.error("Error creating user table:", err);
+            } else {
+                console.log("User table created successfully!");
             }
         });
+        db.exec(createResturantTable, (err) => {
+            if (err) {
+                console.error("Error creating Resturant table:", err);
+            } else {
+                console.log("Resturant table created successfully!");
+            }
+        });
+        db.exec(createBookingTable, (err) => {
+            if (err) {
+                console.error("Error creating Booking table:", err);
+            } else {
+                console.log("Booking table created successfully!");
+            }
+        });
+        db.exec(createReviewTable, (err) => {
+            if (err) {
+                console.error("Error creating Review table:", err);
+            } else {
+                console.log("Review table created successfully!");
+            }
+        });
+        db.exec(createContactTable, (err) => {
+            if (err) {
+                console.error("Error creating Contact table:", err);
+            } else {
+                console.log("Contact table created successfully!");
+            }
+        });
+});
 
-        db.run(createContactTable);
-    });
-    
 module.exports = {db, createResturantTable, createUserTable, createBookingTable, createReviewTable, createContactTable}
